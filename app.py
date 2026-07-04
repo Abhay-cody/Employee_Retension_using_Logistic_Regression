@@ -17,7 +17,7 @@ from sklearn.metrics import accuracy_score, confusion_matrix, classification_rep
 # ==========================================
 # 2. Load Dataset
 # ==========================================
-df = pd.read_csv("/content/sample_data/HR_comma_sep.csv")
+df = pd.read_csv("HR_comma_sep.csv")
 
 df.head()
 
