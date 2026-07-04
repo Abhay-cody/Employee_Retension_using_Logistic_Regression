@@ -1,150 +1,122 @@
 # -*- coding: utf-8 -*-
-"""
-Employee Retention using Logistic Regression
-"""
-
-# ==========================================
-# 1. Import Libraries
-# ==========================================
+import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
+import os
 
 from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import accuracy_score, confusion_matrix, classification_report
 
-# ==========================================
-# 2. Load Dataset
-# ==========================================
-df = pd.read_csv("HR_comma_sep.csv")
-
-df.head()
+st.title("Employee Retention Analysis & Prediction")
 
 # ==========================================
-# 3. Exploratory Data Analysis (EDA)
+# 1. Load Dataset Safely
 # ==========================================
-df.info()
+# Robust fallback paths to prevent breaking on Streamlit Cloud
+possible_paths = ["HR_comma_sep.csv", "/content/sample_data/HR_comma_sep.csv"]
+df = None
 
-df.describe()
+for path in possible_paths:
+    if os.path.exists(path):
+        df = pd.read_csv(path)
+        break
 
-df.isnull().sum()
+if df is None:
+    st.error("Error: 'HR_comma_sep.csv' data file not found in your repository! Please upload it to your GitHub project folder.")
+    st.stop()
+
+st.subheader("Dataset Preview")
+st.dataframe(df.head())
+
+# ==========================================
+# 2. Exploratory Data Analysis (EDA)
+# ==========================================
+st.subheader("Exploratory Data Analysis")
+
+col1, col2 = st.columns(2)
+with col1:
+    st.write("Dataset Description")
+    st.write(df.describe())
+with col2:
+    st.write("Missing Values")
+    st.write(df.isnull().sum())
 
 # Correlation Heatmap
-plt.figure(figsize=(10,7))
-sns.heatmap(df.corr(numeric_only=True), annot=True, cmap="coolwarm")
+st.write("Correlation Heatmap")
+fig, ax = plt.subplots(figsize=(10,7))
+sns.heatmap(df.corr(numeric_only=True), annot=True, cmap="coolwarm", ax=ax)
 plt.title("Correlation Heatmap")
-plt.show()
+st.pyplot(fig)
 
-# Employee Retention
-df['left'].value_counts()
+# Employee Retention Count
+st.write("Employee Retention Counts")
+st.write(df['left'].value_counts())
 
-plt.figure(figsize=(6, 4))
-sns.countplot(x='left', data=df)
+fig, ax = plt.subplots(figsize=(6, 4))
+sns.countplot(x='left', data=df, ax=ax)
 plt.title("Employee Retention")
-plt.show()
+st.pyplot(fig)
 
-# Compare averages of employees who left and stayed
-df.groupby('left').mean(numeric_only=True)
-# From this table you can observe:
-
-# 1.Satisfaction Level has a strong impact.
-# 2.Time spent in company affects retention.
-# 3.Number of projects affects retention.
-# 4.Average monthly hours also have influence.
-# 5.Promotion and work accidents have smaller effects.
-
-# The categorical variables:
-
-# Salary
-# Department
-
-# also influence retention.
+# Compare averages
+st.write("Averages Grouped by Target Variable ('left')")
+st.write(df.groupby('left').mean(numeric_only=True))
 
 # Bar Chart: Salary vs Retention
+st.write("Salary vs Employee Retention")
 salary_retention = pd.crosstab(df.salary, df.left)
-salary_retention.plot(kind='bar', figsize=(7,5))
+fig, ax = plt.subplots(figsize=(7,5))
+salary_retention.plot(kind='bar', ax=ax)
 plt.title("Salary vs Employee Retention")
 plt.xlabel("Salary")
 plt.ylabel("Number of Employees")
-plt.show()
+st.pyplot(fig)
 
 # Bar Chart: Department vs Retention
+st.write("Department vs Employee Retention")
 dept_retention = pd.crosstab(df.Department, df.left)
-dept_retention.plot(kind='bar', figsize=(12,6))
+fig, ax = plt.subplots(figsize=(12,6))
+dept_retention.plot(kind='bar', ax=ax)
 plt.title("Department vs Employee Retention")
 plt.xlabel("Department")
 plt.ylabel("Employees")
-plt.show()
+st.pyplot(fig)
 
 # ==========================================
 # 4. Build Logistic Regression Model
 # ==========================================
-# Select Important Features
 X = df[['satisfaction_level', 'average_montly_hours', 'promotion_last_5years', 'salary']]
-
-# Convert Salary into Dummy Variables
 salary_dummies = pd.get_dummies(X['salary'], prefix='salary', drop_first=True)
-
-# Final Feature Set
 X = pd.concat([X.drop('salary', axis=1), salary_dummies], axis=1)
-
-X.head()
-
-# Target Variable
 y = df['left']
 
-# Train-Test Split
 X_train, X_test, y_train, y_test = train_test_split(
     X, y, test_size=0.2, random_state=42
 )
 
-# Train Logistic Regression
 model = LogisticRegression(max_iter=1000)
 model.fit(X_train, y_train)
-
-# Predictions
 y_pred = model.predict(X_test)
 
 # ==========================================
 # 5. Measure Accuracy
 # ==========================================
-# Accuracy Score
+st.subheader("Model Metrics")
+
 accuracy = accuracy_score(y_test, y_pred)
-print("Accuracy:", accuracy)
+st.metric(label="Accuracy Score", value=f"{accuracy:.4f}")
 
-# Confusion Matrix
+st.write("Confusion Matrix Dataframe:")
 cm = confusion_matrix(y_test, y_pred)
-print(cm)
+st.write(cm)
 
-# Classification Report
-print(classification_report(y_test, y_pred))
+st.text("Classification Report:")
+st.text(classification_report(y_test, y_pred))
 
-# Confusion Matrix Visualization
-plt.figure(figsize=(5,4))
-sns.heatmap(cm, annot=True, fmt='d', cmap='Blues')
+fig, ax = plt.subplots(figsize=(5,4))
+sns.heatmap(cm, annot=True, fmt='d', cmap='Blues', ax=ax)
 plt.xlabel("Predicted")
 plt.ylabel("Actual")
 plt.title("Confusion Matrix")
-plt.show()
-# Expected Results
-
-# For the provided HR_comma_sep.csv dataset, Logistic Regression typically achieves:
-
-# Accuracy: approximately 76%–79% (depending on train-test split and selected features)
-# Key factors affecting employee retention:
-# Satisfaction Level (strongest predictor)
-# Average Monthly Hours
-# Time Spent at Company
-# Number of Projects
-# Salary
-# Promotion in Last 5 Years
-# Department has a comparatively weaker impact than salary.
-
-# This workflow satisfies all five project requirements:
-
-# Exploratory data analysis to identify important variables.
-# Bar charts showing salary vs. retention.
-# Bar charts showing department vs. retention.
-# Logistic Regression model using selected features.
-# Evaluation using accuracy, confusion matrix, and classification report.
+st.pyplot(fig)
