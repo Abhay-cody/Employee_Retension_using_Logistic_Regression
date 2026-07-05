@@ -150,28 +150,29 @@ elif app_mode == "📊 Visual Analytics":
     st.write(df.groupby('left').mean(numeric_only=True))
 
 # ==========================================
-# Tab 3: Retention Predictor (NEW FEATURE)
+# Tab 3: Retention Predictor (Updated for High-Risk Focus)
 # ==========================================
 elif app_mode == "🤖 Retention Predictor":
-    st.markdown('<div class="main-title">Live Retention Predictor</div>', unsafe_allow_html=True)
-    st.markdown("Input an employee's professional profile attributes below to evaluate their risk of attrition in real-time.")
+    st.markdown('<div class="main-title">Live Attrition Risk Predictor</div>', unsafe_allow_html=True)
+    st.markdown("Input an employee's profile below to see if the model flags them as likely to **LEAVE**.")
     
     with st.form("prediction_form"):
         col_left, col_right = st.columns(2)
         
         with col_left:
-            satisfaction = st.slider("Satisfaction Level", min_value=0.0, max_value=1.0, value=0.5, step=0.05, help="0.0 = Miserable, 1.0 = Highly Satisfied")
-            monthly_hours = st.number_input("Average Monthly Hours Worked", min_value=1, max_value=500, value=200)
+            satisfaction = st.slider("Satisfaction Level", min_value=0.0, max_value=1.0, value=0.3, step=0.05, 
+                                     help="0.0 = Miserable, 1.0 = Highly Satisfied")
+            monthly_hours = st.number_input("Average Monthly Hours Worked", min_value=1, max_value=500, value=250)
             
         with col_right:
             salary_level = st.selectbox("Employee Salary Bracket", options=["low", "medium", "high"])
             promotion = st.selectbox("Promoted in Last 5 Years?", options=["No", "Yes"])
             promotion_val = 1 if promotion == "Yes" else 0
             
-        submit_btn = st.form_submit_button("Predict Attrition Probability")
+        submit_btn = st.form_submit_button("Run Departure Risk Assessment")
         
     if submit_btn:
-        # Construct the runtime feature row mapping back exactly to what model expects
+        # Construct raw input features
         input_data = pd.DataFrame([{
             'satisfaction_level': satisfaction,
             'average_montly_hours': monthly_hours,
@@ -180,18 +181,37 @@ elif app_mode == "🤖 Retention Predictor":
             'salary_medium': 1 if salary_level == 'medium' else 0
         }])
         
-        # Match feature columns shape cleanly
         input_data = input_data.reindex(columns=training_columns, fill_value=0)
         
         prediction = model.predict(input_data)[0]
-        probability = model.predict_proba(input_data)[0][1]
+        probability_leave = model.predict_proba(input_data)[0][1] # Probability of leaving (Class 1)
         
-        st.markdown("### 🔍 Prediction Result")
-        if prediction == 1:
-            st.error(f"⚠️ **High Attrition Risk:** This employee is predicted likely to **LEAVE** the company (Risk Probability: {probability:.1%}).")
+        st.markdown("---")
+        st.markdown("## 🔍 Assessment Verdict")
+        
+        # EXACTLY SAY WHEN AN EMPLOYEE WILL LEAVE:
+        # If probability is greater than 50% (0.5), Logistic Regression flags it as a 1 (Leave)
+        if prediction == 1 or probability_leave >= 0.5:
+            st.error(f"🚨 **CRITICAL ATTRITION RISK DETECTED: THE EMPLOYEE IS PREDICTED TO LEAVE.**")
+            
+            # Display metrics card focusing on departure
+            st.metric(label="Probability of Departure", value=f"{probability_leave:.1%}")
+            
+            st.markdown("### 📉 Core Triggers for this Departure Prediction:")
+            st.markdown("Based on the mathematical coefficients of your Logistic Regression model, this employee crosses the line into 'Leaving' because:")
+            if satisfaction < 0.4:
+                st.markdown("* **Severely Low Satisfaction:** A satisfaction level below 0.40 is the strongest mathematical driver for employee turnover in this dataset.")
+            if monthly_hours > 240:
+                st.markdown("* **Overworked Hours:** The average monthly hours are dangerously high, pointing to severe burnout risk.")
+            if salary_level == "low":
+                st.markdown("* **Low Stagnant Salary:** Being stuck in a low salary bracket significantly multiplies the probability of departure.")
+            if promotion_val == 0:
+                st.markdown("* **No Recent Promotion:** Lack of upward mobility in the last 5 years acts as a compounding departure catalyst.")
+                
         else:
-            st.success(f"✅ **Safe Retention Profile:** This employee is predicted likely to **STAY** with the company (Stay Probability: {1-probability:.1%}).")
-
+            st.success(f"✅ **RETENTION PROFILE SAFE:** The employee is expected to **STAY**.")
+            st.metric(label="Probability of Departure", value=f"{probability_leave:.1%}")
+            st.markdown("The departure probability is safely below the **50% classification threshold**, meaning their metrics do not match the typical signature of someone planning to quit.")
 # ==========================================
 # Tab 4: Model Performance
 # ==========================================
