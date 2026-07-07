@@ -235,30 +235,37 @@ elif app_mode == "📈 Model Performance":
         st.markdown("### 📄 Classification Evaluation Report")
         st.text_area(label="Precision, Recall & F1-Score Breakdown", value=classification_report(y_test, y_pred), height=220)
 
-# ==============================
-# Sidebar Branding
-# ==============================
+# Sidebar Brading ------
 
 st.markdown("---")
 
-st.markdown("""
-<div style='text-align:center;'>
+st.markdown(
+"""
+<div style="
+padding:25px;
+border-radius:15px;
+background:linear-gradient(135deg,#0f172a,#1e293b);
+color:white;
+text-align:center;
+">
 
-### 🚀 Developed by <span style="color:#4CAF50;">ABHAY KUMAR GUPTA</span>
+<h2>👨‍💻 Developer</h2>
+
+<h3>Abhay Kumar Gupta</h3>
+
+<p>Machine Learning • Deep Learning • Python • Streamlit</p>
 
 <a href="https://github.com/Abhay-cody" target="_blank">
-<img src="https://img.shields.io/badge/GitHub-181717?style=for-the-badge&logo=github&logoColor=white">
-</a>
-
-&nbsp;
-
-<a href="https://www.linkedin.com/in/abhay-kumar-gupta-104a18397" target="_blank">
-<img src="https://img.shields.io/badge/LinkedIn-0077B5?style=for-the-badge&logo=linkedin&logoColor=white">
+<img src="https://img.shields.io/badge/GitHub-Visit_Profile-181717?style=for-the-badge&logo=github">
 </a>
 
 <br><br>
 
-⭐ Thank you for visiting this Machine Learning Project.
+<a href="https://www.linkedin.com/in/abhay-kumar-gupta-104a18397" target="_blank">
+<img src="https://img.shields.io/badge/LinkedIn-Connect_with_Me-0077B5?style=for-the-badge&logo=linkedin">
+</a>
 
 </div>
-""", unsafe_allow_html=True)
+""",
+unsafe_allow_html=True
+)
